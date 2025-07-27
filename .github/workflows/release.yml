@@ -224,7 +224,7 @@ jobs:
     - name: Download release assets
       run: |
         # Download macOS assets to get checksums  
-        gh release download ${{ steps.get_version.outputs.version }} --pattern "*macos*" --dir homebrew-tap/ --repo ${{ github.repository }}
+        gh release download ${{ steps.get_version.outputs.version }} --pattern "*macos*" --dir homebrew-tap/ --repo ${{ github.repository }} --skip-existing
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
