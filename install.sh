@@ -111,44 +111,103 @@ get_latest_version() {
 download_and_verify() {
     local version="$1"
     local platform="$2"
-    local asset_name="netwatch-${platform}"
-    local download_url="https://github.com/${REPO}/releases/download/${version}/${asset_name}.tar.gz"
-    local checksum_url="https://github.com/${REPO}/releases/download/${version}/${asset_name}.sha256"
     
-    info "Downloading netwatch ${version} for ${platform}..."
-    info "Download URL: ${download_url}"
+    # Get the actual asset name from GitHub API
+    local api_url="https://api.github.com/repos/${REPO}/releases/latest"
+    local assets_json
+    
+    if command -v curl >/dev/null 2>&1; then
+        assets_json=$(curl -s "$api_url")
+    elif command -v wget >/dev/null 2>&1; then
+        assets_json=$(wget -qO- "$api_url")
+    else
+        fatal "Neither curl nor wget found. Please install one of them to continue."
+    fi
+    
+    # Find the correct asset name and checksum for this platform
+    local asset_name=""
+    local expected_checksum=""
+    
+    # Find the asset for our platform - try both naming conventions
+    local download_url=""
+    
+    # First try the versioned naming (e.g., netwatch-macos-arm64-v0.1.1.tar.gz)
+    download_url=$(echo "$assets_json" | grep "browser_download_url.*netwatch-${platform}-${version}.tar.gz" | sed -E 's/.*"([^"]+)".*/\1/')
+    
+    # If not found, try the simple naming (e.g., netwatch-macos-arm64.tar.gz)
+    if [[ -z "$download_url" ]]; then
+        download_url=$(echo "$assets_json" | grep "browser_download_url.*netwatch-${platform}.tar.gz" | sed -E 's/.*"([^"]+)".*/\1/')
+    fi
+    
+    if [[ -z "$download_url" ]]; then
+        fatal "No binary found for platform: ${platform}"
+    fi
+    
+    # Extract asset name from URL
+    asset_name=$(echo "$download_url" | sed -E 's/.*\/([^\/]+)\.tar\.gz.*/\1/')
+    
+    # Get the checksum for this specific asset by finding the digest that appears before our URL
+    expected_checksum=""
+    local temp_file=$(mktemp)
+    echo "$assets_json" > "$temp_file"
+    
+    # Find line number of our download URL
+    local url_line=$(grep -n "$download_url" "$temp_file" | cut -d: -f1)
+    if [[ -n "$url_line" ]]; then
+        # Look backwards from the URL line to find the corresponding digest
+        for ((i=url_line; i>=url_line-20 && i>=1; i--)); do
+            local line=$(sed -n "${i}p" "$temp_file")
+            if echo "$line" | grep -q '"digest":.*"sha256:'; then
+                expected_checksum=$(echo "$line" | sed -E 's/.*"sha256:([^"]+)".*/\1/')
+                break
+            fi
+        done
+    fi
+    rm -f "$temp_file"
+    
+    info "Downloading netwatch ${version} for ${platform}..." >&2
+    info "Download URL: ${download_url}" >&2
     
     # Create temporary directory
     local temp_dir
     temp_dir=$(mktemp -d)
-    trap "rm -rf '$temp_dir'" EXIT
+    # Note: Don't set EXIT trap here as we need the directory to persist for install_binary
     
     cd "$temp_dir"
     
-    # Download the archive and checksum
+    # Download the archive
     if command -v curl >/dev/null 2>&1; then
         curl -sL "$download_url" -o "${asset_name}.tar.gz"
-        curl -sL "$checksum_url" -o "${asset_name}.sha256" 2>/dev/null || warning "Checksum file not available for verification"
     elif command -v wget >/dev/null 2>&1; then
         wget -q "$download_url" -O "${asset_name}.tar.gz"
-        wget -q "$checksum_url" -O "${asset_name}.sha256" 2>/dev/null || warning "Checksum file not available for verification"
     fi
     
     # Verify checksum if available
-    if [[ -f "${asset_name}.sha256" ]]; then
-        info "Verifying download integrity..."
+    if [[ -n "$expected_checksum" ]]; then
+        info "Verifying download integrity..." >&2
+        local actual_checksum=""
+        
         if command -v sha256sum >/dev/null 2>&1; then
-            if ! sha256sum -c "${asset_name}.sha256" >/dev/null 2>&1; then
-                fatal "Checksum verification failed. The download may be corrupted or tampered with."
-            fi
-            success "Checksum verification passed"
+            actual_checksum=$(sha256sum "${asset_name}.tar.gz" | cut -d' ' -f1)
+        elif command -v shasum >/dev/null 2>&1; then
+            actual_checksum=$(shasum -a 256 "${asset_name}.tar.gz" | cut -d' ' -f1)
         else
-            warning "sha256sum not available, skipping checksum verification"
+            warning "Neither sha256sum nor shasum available, skipping checksum verification" >&2
         fi
+        
+        if [[ -n "$actual_checksum" ]]; then
+            if [[ "$actual_checksum" == "$expected_checksum" ]]; then
+                success "Checksum verification passed" >&2
+            else
+                fatal "Checksum verification failed. Expected: $expected_checksum, Got: $actual_checksum"
+            fi
+        fi
+    else
+        warning "No checksum available for verification" >&2
     fi
     
     # Extract the archive
-    info "Extracting archive..."
+    info "Extracting archive..." >&2
     tar -xzf "${asset_name}.tar.gz"
     
     # Verify the binary exists
@@ -306,6 +365,10 @@ main() {
     
     # Install
     install_binary "$binary_path"
+    
+    # Clean up temporary directory
+    local temp_dir=$(dirname "$binary_path")
+    rm -rf "$temp_dir"
     
     # Final instructions
     echo
