@@ -1341,7 +1341,6 @@ fn format_bytes(bytes: u64) -> String {
 
 // Helper function for formatting bytes with specific unit
 fn format_bytes_with_unit(bytes: u64, unit: &TrafficUnit) -> String {
-    use crate::cli::TrafficUnit;
 
     match unit {
         TrafficUnit::HumanBit => {

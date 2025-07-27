@@ -46,4 +46,4 @@ CMD ["--help"]
 # Metadata
 LABEL maintainer="netwatch contributors"
 LABEL description="A modern network traffic monitor for Unix systems"
-LABEL version="0.1.4"
+LABEL version="0.1.5"
