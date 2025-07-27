@@ -6,18 +6,30 @@
 ### Added
 - Automatic glibc version detection in installation script
 - Better platform compatibility for older Linux distributions
+- High performance mode (`--high-perf`) for heavy traffic scenarios
+- Adaptive polling intervals based on refresh rate
 
 ### Changed
+- Default refresh interval increased from 500ms to 1000ms for better performance
 - Installation script now automatically chooses musl static binaries for glibc < 2.35
 - Improved user feedback during installation process
+- Dashboard update intervals now scale with refresh rate for better CPU efficiency
+- Event polling adapts to refresh rate to reduce CPU usage
 
 ### Fixed
 - Compatibility issues with Ubuntu 20.04 and other older Linux distributions
 - Installation script now works correctly on systems with older glibc versions
 - ARM64 cross-compilation build issues in CI/CD pipeline
+- Performance issues under heavy network traffic scenarios
+- Installation script version parsing and asset detection
 
 ### Security
 - Enhanced binary selection for better compatibility across Linux distributions
+
+### Performance
+- Reduced CPU usage under heavy traffic loads
+- Better responsiveness with adaptive polling
+- Configurable performance modes for different use cases
 
 All notable changes to netwatch will be documented in this file.
 

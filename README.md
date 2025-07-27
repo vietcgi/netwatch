@@ -121,7 +121,8 @@ Monitor multiple interfaces with:
 -a, --average <seconds>       Average window length [default: 300]
 -i, --incoming <kBit/s>       Max incoming bandwidth scale (0 = auto)
 -o, --outgoing <kBit/s>       Max outgoing bandwidth scale (0 = auto)
--t, --interval <ms>           Refresh interval in milliseconds [default: 500]
+-t, --interval <ms>           Refresh interval in milliseconds [default: 1000]
+    --high-perf               Enable high performance mode (slower updates, less CPU)
 -u, --unit <unit>             Traffic unit format [default: k]
 -U, --data-unit <unit>        Data unit for totals [default: M]
 -m, --multiple                Show multiple devices

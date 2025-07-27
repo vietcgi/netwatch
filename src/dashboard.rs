@@ -412,9 +412,12 @@ pub fn run_dashboard(
     let mut last_draw = Instant::now();
     let mut needs_redraw = true;
     let refresh_interval = Duration::from_millis(config.refresh_interval);
-    let connection_update_interval = Duration::from_secs(2); // Update connections every 2 seconds
-    let process_update_interval = Duration::from_secs(3); // Update processes every 3 seconds
-    let draw_interval = Duration::from_millis(100); // Limit drawing to 10 FPS max
+    // Scale update intervals based on refresh rate and performance mode
+    let base_multiplier = (config.refresh_interval as f64 / 1000.0).max(1.0);
+    let perf_multiplier = if config.high_performance { 2.0 } else { 1.0 };
+    let connection_update_interval = Duration::from_secs((4.0 * base_multiplier * perf_multiplier) as u64);
+    let process_update_interval = Duration::from_secs((6.0 * base_multiplier * perf_multiplier) as u64);
+    let draw_interval = Duration::from_millis((200.0 * base_multiplier * perf_multiplier) as u64);
 
     // Initialize parallel data cache with real data immediately
     {
@@ -458,7 +461,9 @@ pub fn run_dashboard(
 
     loop {
         // Handle input events with faster polling for better responsiveness
-        if event::poll(Duration::from_millis(50))? {
+        // Scale event polling based on refresh rate for better performance
+        let poll_interval = (config.refresh_interval / 10).max(50).min(100);
+        if event::poll(Duration::from_millis(poll_interval))? {
             if let Event::Key(key) = event::read()? {
                 let input_event = InputEvent::from_key_event(key);
 

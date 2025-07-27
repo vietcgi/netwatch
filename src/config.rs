@@ -39,6 +39,9 @@ pub struct Config {
     #[serde(rename = "RefreshInterval")]
     pub refresh_interval: u64,
 
+    #[serde(rename = "HighPerformance", default)]
+    pub high_performance: bool,
+
     #[serde(rename = "TrafficFormat")]
     pub traffic_format: String,
 
@@ -58,7 +61,8 @@ impl Default for Config {
             data_format: "M".to_string(),
             devices: "all".to_string(),
             multiple_devices: false,
-            refresh_interval: 500,
+            refresh_interval: 1000,
+            high_performance: false,
             traffic_format: "k".to_string(),
             diagnostic_targets: default_diagnostic_targets(),
             dns_domains: default_dns_domains(),
@@ -99,6 +103,7 @@ impl Config {
         self.max_incoming = args.max_incoming;
         self.max_outgoing = args.max_outgoing;
         self.refresh_interval = args.refresh_interval;
+        self.high_performance = args.high_performance;
         self.traffic_format = args.traffic_unit.to_string().to_string();
         self.data_format = args.data_unit.to_string().to_string();
         self.multiple_devices = args.multiple_devices;
