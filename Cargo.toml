@@ -10,7 +10,7 @@ repository = "https://github.com/vietcgi/netwatch"
 homepage = "https://github.com/vietcgi/netwatch"
 documentation = "https://docs.rs/netwatch"
 readme = "README.md"
-keywords = ["network", "monitoring", "bandwidth", "traffic", "cli", "nload", "terminal", "sre"]
+keywords = ["network", "monitoring", "bandwidth", "traffic", "cli"]
 categories = ["command-line-utilities", "network-programming", "visualization"]
 exclude = ["debug.log", "target/", ".github/"]
 
