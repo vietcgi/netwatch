@@ -89,8 +89,6 @@ detect_platform() {
 
 # Get the latest release version
 get_latest_version() {
-    info "Fetching latest release information..."
-    
     local api_url="https://api.github.com/repos/${REPO}/releases/latest"
     local version
     
@@ -297,6 +295,7 @@ main() {
     
     # Get version
     if [[ -z "$version" ]]; then
+        info "Fetching latest release information..."
         version=$(get_latest_version)
     fi
     info "Installing version: $version"
