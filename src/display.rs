@@ -105,7 +105,7 @@ pub fn run_ui(
         // Update network statistics
         if !state.paused && last_update.elapsed() >= refresh_interval {
             let mut high_traffic_detected = false;
-            
+
             for device in &mut state.devices {
                 if device.update(reader.as_ref()).is_err() {
                     // Device unavailable, continue with others
@@ -134,7 +134,7 @@ pub fn run_ui(
             if high_traffic_detected && !config.high_performance {
                 crate::security::enable_high_performance_security(true);
             }
-            
+
             last_update = Instant::now();
         }
 
