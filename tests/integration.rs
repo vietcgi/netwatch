@@ -50,11 +50,20 @@ fn test_invalid_interface() {
 
 #[test]
 fn test_refresh_interval_validation() {
+    // Test valid refresh interval
+    let mut cmd = Command::cargo_bin("netwatch").unwrap();
+    cmd.args(["-t", "500"]) // Valid refresh interval (>=100ms)
+        .arg("--list")
+        .assert()
+        .success();
+    
+    // Test invalid refresh interval (too low - should fail due to security validation)
     let mut cmd = Command::cargo_bin("netwatch").unwrap();
     cmd.args(["-t", "50"]) // Too low refresh interval
         .arg("--list")
         .assert()
-        .success(); // Should succeed but correct the interval
+        .failure()
+        .stderr(predicate::str::contains("Refresh interval too small"));
 }
 
 #[test]
