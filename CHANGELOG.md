@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2] - 2025-07-27
+
+### Fixed
+- Fixed security forensics crashes under heavy load and adverse conditions
+- Added comprehensive panic protection to all forensics panel functions
+- Implemented graceful fallback UI when forensics analysis fails
+- Enhanced system stability during high traffic scenarios
+
+### Changed
+- Improved error handling in security analysis components
+- Better resilience in network intelligence processing
+- More robust connection monitoring under stress
 
 ## [0.1.1] - 2025-07-27
 
