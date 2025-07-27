@@ -72,7 +72,13 @@ jobs:
         fi
 
     - name: Strip binary (Linux/macOS)
-      run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+      run: |
+        if [[ "${{ matrix.target }}" == "aarch64"* ]]; then
+          # Skip stripping for ARM64 cross-compiled binaries to avoid strip tool issues
+          echo "Skipping strip for ARM64 cross-compiled binary"
+        else
+          strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+        fi
 
     - name: Generate checksums and signatures
       run: |
