@@ -30,6 +30,10 @@
 - Reduced CPU usage under heavy traffic loads
 - Better responsiveness with adaptive polling
 - Configurable performance modes for different use cases
+- Optimized security forensic system for high traffic scenarios
+- Circular buffer implementation for security events to prevent memory issues
+- Throttled security event processing under heavy load
+- Auto-detection of high traffic conditions with automatic security optimization
 
 All notable changes to netwatch will be documented in this file.
 
