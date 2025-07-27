@@ -77,10 +77,15 @@ jobs:
     - name: Generate checksums and signatures
       run: |
         cd target/${{ matrix.target }}/release
-        # Generate SHA256 checksum
-        sha256sum ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha256
-        # Generate SHA512 checksum for additional security
-        sha512sum ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha512
+        if [[ "${{ runner.os }}" == "macOS" ]]; then
+          # macOS uses shasum instead of sha256sum
+          shasum -a 256 ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha256
+          shasum -a 512 ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha512
+        else
+          # Linux uses sha256sum/sha512sum
+          sha256sum ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha256
+          sha512sum ${{ matrix.artifact_name }} > ${{ matrix.asset_name }}.sha512
+        fi
         
     - name: Create tarball with checksums
       run: |
