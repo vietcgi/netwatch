@@ -464,7 +464,7 @@ pub fn run_dashboard(
     loop {
         // Handle input events with faster polling for better responsiveness
         // Scale event polling based on refresh rate for better performance
-        let poll_interval = (config.refresh_interval / 10).max(50).min(100);
+        let poll_interval = (config.refresh_interval / 10).clamp(50, 100);
         if event::poll(Duration::from_millis(poll_interval))? {
             if let Event::Key(key) = event::read()? {
                 let input_event = InputEvent::from_key_event(key);
