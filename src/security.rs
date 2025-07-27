@@ -92,12 +92,12 @@ impl SecurityMonitor {
         // Throttle in high performance mode under heavy load
         if self.high_performance_mode {
             self.events_this_second += 1;
-            
+
             // Skip non-critical events if we're seeing too many per second
             if self.events_this_second > 100 && !self.is_critical_event(&event) {
                 return;
             }
-            
+
             // Hard limit even for critical events
             if self.events_this_second > 500 {
                 return;
@@ -133,15 +133,16 @@ impl SecurityMonitor {
     /// Clean up old data to prevent memory growth
     fn cleanup_old_data(&mut self, now: Instant) {
         self.last_cleanup = now;
-        
+
         // In high performance mode, clear old event counts more aggressively
         if self.high_performance_mode && self.event_counts.len() > 100 {
-            let keys_to_remove: Vec<String> = self.event_counts
+            let keys_to_remove: Vec<String> = self
+                .event_counts
                 .iter()
                 .filter(|(_, &count)| count < 5) // Remove entries with low counts
                 .map(|(key, _)| key.clone())
                 .collect();
-            
+
             for key in keys_to_remove {
                 self.event_counts.remove(&key);
             }
@@ -188,7 +189,7 @@ impl SecurityMonitor {
                 total_events: self.events.len(),
                 events_last_hour: self.events.len().min(100), // Approximate
                 events_last_day: self.events.len(),
-                critical_events: 0, // Skip expensive calculation
+                critical_events: 0,          // Skip expensive calculation
                 event_types: HashMap::new(), // Skip expensive clone
             };
         }
@@ -242,7 +243,7 @@ impl SecurityMonitor {
         for (time, event) in &self.events {
             if *time > last_minute {
                 recent_events += 1;
-                
+
                 // Track invalid input sources
                 if let SecurityEvent::InvalidInput { source, .. } = event {
                     *invalid_input_sources.entry(source.clone()).or_insert(0) += 1;

@@ -107,7 +107,7 @@ impl Config {
         self.traffic_format = args.traffic_unit.to_string().to_string();
         self.data_format = args.data_unit.to_string().to_string();
         self.multiple_devices = args.multiple_devices;
-        
+
         // Enable high performance security monitoring if high-perf mode is enabled
         if self.high_performance {
             crate::security::enable_high_performance_security(true);
