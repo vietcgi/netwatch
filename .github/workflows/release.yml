@@ -223,8 +223,8 @@ jobs:
         
     - name: Download release assets
       run: |
-        # Download macOS assets to get checksums
-        gh release download ${{ steps.get_version.outputs.version }} --pattern "*macos*" --dir homebrew-tap/
+        # Download macOS assets to get checksums  
+        gh release download ${{ steps.get_version.outputs.version }} --pattern "*macos*" --dir homebrew-tap/ --repo ${{ github.repository }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
@@ -312,6 +312,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+      
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
@@ -327,10 +336,12 @@ jobs:
       with:
         images: ${{ github.repository_owner }}/netwatch
         tags: |
-          type=ref,event=tag
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
+          type=raw,value=latest
+          type=raw,value=${{ steps.get_version.outputs.version }}
+        labels: |
+          org.opencontainers.image.title=netwatch
+          org.opencontainers.image.description=Modern network traffic monitor for Unix systems
+          org.opencontainers.image.version=${{ steps.get_version.outputs.version }}
           
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
