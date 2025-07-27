@@ -415,8 +415,10 @@ pub fn run_dashboard(
     // Scale update intervals based on refresh rate and performance mode
     let base_multiplier = (config.refresh_interval as f64 / 1000.0).max(1.0);
     let perf_multiplier = if config.high_performance { 2.0 } else { 1.0 };
-    let connection_update_interval = Duration::from_secs((4.0 * base_multiplier * perf_multiplier) as u64);
-    let process_update_interval = Duration::from_secs((6.0 * base_multiplier * perf_multiplier) as u64);
+    let connection_update_interval =
+        Duration::from_secs((4.0 * base_multiplier * perf_multiplier) as u64);
+    let process_update_interval =
+        Duration::from_secs((6.0 * base_multiplier * perf_multiplier) as u64);
     let draw_interval = Duration::from_millis((200.0 * base_multiplier * perf_multiplier) as u64);
 
     // Initialize parallel data cache with real data immediately
