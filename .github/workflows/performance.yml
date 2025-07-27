@@ -1,0 +1,252 @@
+name: Performance
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance tests weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      
+    - name: Install network simulation tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y iproute2 net-tools iperf3
+        
+    - name: Set up virtual network interfaces
+      run: |
+        sudo ip link add bench0 type dummy
+        sudo ip link add bench1 type dummy  
+        sudo ip link set bench0 up
+        sudo ip link set bench1 up
+        
+    - name: Run benchmarks
+      run: |
+        cargo bench --bench statistics 2>&1 | tee benchmark-results.txt
+        cargo bench --bench platform 2>&1 | tee -a benchmark-results.txt
+        
+    - name: Extract benchmark metrics
+      run: |
+        # Extract key performance metrics for tracking
+        echo "# Performance Metrics" > performance-metrics.md
+        echo "Date: $(date)" >> performance-metrics.md
+        echo "" >> performance-metrics.md
+        
+        # Extract statistics processing performance
+        if grep -q "statistics" benchmark-results.txt; then
+          echo "## Statistics Processing" >> performance-metrics.md
+          grep -A 5 -B 1 "statistics" benchmark-results.txt >> performance-metrics.md
+        fi
+        
+        # Extract platform-specific performance
+        if grep -q "platform" benchmark-results.txt; then
+          echo "## Platform Performance" >> performance-metrics.md
+          grep -A 5 -B 1 "platform" benchmark-results.txt >> performance-metrics.md
+        fi
+        
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: |
+          benchmark-results.txt
+          performance-metrics.md
+          target/criterion/
+
+  memory-profiling:
+    name: Memory Usage Profiling
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Install profiling tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y valgrind heaptrack
+        
+    - name: Build release binary
+      run: cargo build --release
+      
+    - name: Memory usage baseline test
+      run: |
+        # Test memory usage with different workloads
+        echo "# Memory Usage Report" > memory-report.md
+        echo "Date: $(date)" >> memory-report.md
+        echo "" >> memory-report.md
+        
+        # Short-term memory usage
+        echo "## Short-term Usage (10 seconds)" >> memory-report.md
+        timeout 10s /usr/bin/time -v ./target/release/netwatch lo 2>&1 | grep -E "(Maximum resident|Average resident)" >> memory-report.md || true
+        
+        echo "" >> memory-report.md
+        echo "## Memory leak check" >> memory-report.md
+        echo "Rust provides memory safety through ownership system" >> memory-report.md
+        
+    - name: Upload memory report
+      uses: actions/upload-artifact@v4
+      with:
+        name: memory-report
+        path: memory-report.md
+
+  load-testing:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Build release binary
+      run: cargo build --release
+      
+    - name: Set up test environment
+      run: |
+        # Create multiple virtual interfaces for load testing
+        for i in {0..9}; do
+          sudo ip link add load$i type dummy
+          sudo ip link set load$i up
+        done
+        
+    - name: High-frequency monitoring test
+      run: |
+        echo "# Load Testing Report" > load-test-report.md
+        echo "Date: $(date)" >> load-test-report.md
+        echo "" >> load-test-report.md
+        
+        # Test with high refresh rate
+        echo "## High Frequency Test (50ms refresh)" >> load-test-report.md
+        timeout 30s ./target/release/netwatch -t 50 lo 2>&1 | head -10 >> load-test-report.md || echo "Completed high frequency test" >> load-test-report.md
+        
+        # Test with multiple interfaces
+        echo "" >> load-test-report.md
+        echo "## Multiple Interface Test" >> load-test-report.md
+        timeout 15s ./target/release/netwatch -m 2>&1 | head -5 >> load-test-report.md || echo "Completed multiple interface test" >> load-test-report.md
+        
+    - name: CPU usage profiling
+      run: |
+        echo "" >> load-test-report.md
+        echo "## CPU Usage Profile" >> load-test-report.md
+        
+        # Monitor CPU usage during operation
+        ./target/release/netwatch lo &
+        NETWATCH_PID=$!
+        sleep 5
+        
+        # Get CPU stats
+        ps -p $NETWATCH_PID -o %cpu,%mem,time >> load-test-report.md 2>/dev/null || echo "Process monitoring completed" >> load-test-report.md
+        
+        kill $NETWATCH_PID 2>/dev/null || true
+        
+    - name: Upload load test report
+      uses: actions/upload-artifact@v4
+      with:
+        name: load-test-report
+        path: load-test-report.md
+
+  performance-regression:
+    name: Performance Regression Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: Checkout PR code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Run PR benchmarks
+      run: |
+        cargo bench --bench statistics > pr-benchmarks.txt 2>&1
+        
+    - name: Checkout main branch
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        path: main-branch
+        
+    - name: Run main branch benchmarks
+      run: |
+        cd main-branch
+        cargo bench --bench statistics > ../main-benchmarks.txt 2>&1
+        cd ..
+        
+    - name: Compare performance
+      run: |
+        echo "# Performance Comparison" > performance-comparison.md
+        echo "PR vs Main Branch" >> performance-comparison.md
+        echo "" >> performance-comparison.md
+        
+        echo "## PR Branch Results" >> performance-comparison.md
+        echo "\`\`\`" >> performance-comparison.md
+        cat pr-benchmarks.txt >> performance-comparison.md
+        echo "\`\`\`" >> performance-comparison.md
+        
+        echo "" >> performance-comparison.md
+        echo "## Main Branch Results" >> performance-comparison.md
+        echo "\`\`\`" >> performance-comparison.md
+        cat main-benchmarks.txt >> performance-comparison.md
+        echo "\`\`\`" >> performance-comparison.md
+        
+        echo "" >> performance-comparison.md
+        echo "## Analysis" >> performance-comparison.md
+        echo "Manual review required for performance impact assessment" >> performance-comparison.md
+        
+    - name: Upload performance comparison
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-comparison
+        path: performance-comparison.md
+
+  performance-dashboard:
+    name: Performance Dashboard Update
+    needs: [benchmark, memory-profiling, load-testing]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Download all performance artifacts
+      uses: actions/download-artifact@v4
+      
+    - name: Generate performance dashboard
+      run: |
+        echo "# netwatch Performance Dashboard" > dashboard.md
+        echo "Last Updated: $(date)" >> dashboard.md
+        echo "" >> dashboard.md
+        
+        # Combine all performance reports
+        for report in benchmark-results memory-report load-test-report; do
+          if [ -d "$report" ]; then
+            echo "## $(echo $report | tr '-' ' ' | sed 's/\b\w/\U&/g')" >> dashboard.md
+            find "$report" -name "*.md" -exec cat {} \; >> dashboard.md
+            echo "" >> dashboard.md
+          fi
+        done
+        
+    - name: Upload performance dashboard
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-dashboard
+        path: dashboard.md

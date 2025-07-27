@@ -1,0 +1,23 @@
+# Authors
+
+This file lists the contributors to the netwatch project.
+
+## Maintainers
+
+- vietcgi - Project creator and primary maintainer
+
+## Contributors
+
+- vietcgi - Initial implementation and architecture
+- Additional contributors welcome!
+
+## Acknowledgments
+
+- Roland Riegel - Creator of the original nload tool that inspired this project
+- The Rust community - For the excellent ecosystem and tools
+- ratatui contributors - For the terminal UI framework
+- All users and contributors who help make netwatch better
+
+---
+
+To add yourself to this list, please include your name in any significant contribution pull request.

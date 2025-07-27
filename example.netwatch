@@ -1,0 +1,27 @@
+# Example netwatch configuration file
+# Place this file as ~/.netwatch for user-specific settings
+
+# Basic display settings
+AverageWindow = 300
+BarMaxIn = 0
+BarMaxOut = 0
+DataFormat = "M"
+Devices = "all"
+MultipleDevices = false
+RefreshInterval = 500
+TrafficFormat = "k"
+
+# Active Diagnostics Configuration
+# These targets will be tested for connectivity and performance
+DiagnosticTargets = [
+    "1.1.1.1",           # Cloudflare DNS (fast, privacy-focused)
+    "8.8.8.8",           # Google DNS (widely accessible)
+    "9.9.9.9"            # Quad9 DNS (security-focused)
+]
+
+# DNS domains to test for resolution performance
+DNSDomains = [
+    "cloudflare.com",    # Reliable test domain
+    "google.com",        # Reliable test domain
+    "github.com"         # Development-relevant domain
+]

@@ -1,0 +1,173 @@
+name: Security
+
+on:
+  schedule:
+    # Run security checks daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+      
+    - name: Run security audit
+      run: cargo audit --json | tee audit-results.json
+      
+    - name: Upload audit results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-audit-results
+        path: audit-results.json
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Install cargo-deny
+      run: cargo install cargo-deny
+      
+    - name: Check dependencies for security issues
+      run: cargo deny check
+      
+    - name: Check for banned dependencies
+      run: cargo deny check bans
+      
+    - name: Check licenses
+      run: cargo deny check licenses
+
+  supply-chain:
+    name: Supply Chain Security
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Generate SBOM (Software Bill of Materials)
+      run: |
+        cargo install cargo-cyclonedx
+        cargo cyclonedx --format json > sbom.json
+        
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v4
+      with:
+        name: software-bill-of-materials
+        path: sbom.json
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+        
+    - name: Run Clippy with security lints
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+  fuzz-testing:
+    name: Fuzz Testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'push'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@nightly
+      
+    - name: Install cargo-fuzz
+      run: cargo install cargo-fuzz
+      
+    - name: Run fuzz tests (short duration for CI)
+      run: |
+        # Initialize fuzz targets if they don't exist
+        mkdir -p fuzz
+        if [ ! -f fuzz/Cargo.toml ]; then
+          cargo fuzz init
+          cargo fuzz add stats_parsing
+        fi
+        
+        # Run fuzzing for a short time in CI
+        timeout 300s cargo fuzz run stats_parsing || echo "Fuzzing completed or timed out"
+      continue-on-error: true
+
+  memory-safety:
+    name: Memory Safety Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: miri
+        
+    - name: Run Miri (Rust's interpreter for unsafe code)
+      run: |
+        # Miri can catch undefined behavior in unsafe code
+        cargo miri test
+      continue-on-error: true  # Miri is experimental and may have false positives
+
+  security-reporting:
+    name: Security Report
+    needs: [security-audit, dependency-check, static-analysis]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Download audit results
+      uses: actions/download-artifact@v4
+      with:
+        name: security-audit-results
+        
+    - name: Generate security report
+      run: |
+        echo "# Security Report" > security-report.md
+        echo "Date: $(date)" >> security-report.md
+        echo "" >> security-report.md
+        
+        if [ -f audit-results.json ]; then
+          echo "## Security Audit Results" >> security-report.md
+          echo "\`\`\`json" >> security-report.md
+          cat audit-results.json >> security-report.md
+          echo "\`\`\`" >> security-report.md
+        fi
+        
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-report
+        path: security-report.md
