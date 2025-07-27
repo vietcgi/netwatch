@@ -93,9 +93,9 @@ get_latest_version() {
     local version
     
     if command -v curl >/dev/null 2>&1; then
-        version=$(curl -s "$api_url" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\\1/')
+        version=$(curl -s "$api_url" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     elif command -v wget >/dev/null 2>&1; then
-        version=$(wget -qO- "$api_url" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\\1/')
+        version=$(wget -qO- "$api_url" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     else
         fatal "Neither curl nor wget found. Please install one of them to continue."
     fi
