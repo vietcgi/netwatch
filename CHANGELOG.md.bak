@@ -1,24 +1,5 @@
 # Changelog
 
-
-## [0.1.1] - 2025-07-27
-
-### Added
-- Automatic glibc version detection in installation script
-- Better platform compatibility for older Linux distributions
-
-### Changed
-- Installation script now automatically chooses musl static binaries for glibc < 2.35
-- Improved user feedback during installation process
-
-### Fixed
-- Compatibility issues with Ubuntu 20.04 and other older Linux distributions
-- Installation script now works correctly on systems with older glibc versions
-- ARM64 cross-compilation build issues in CI/CD pipeline
-
-### Security
-- Enhanced binary selection for better compatibility across Linux distributions
-
 All notable changes to netwatch will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
