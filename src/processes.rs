@@ -423,7 +423,6 @@ impl ProcessMonitor {
     }
 
     fn parse_lsof_processes(&mut self, output: &str) {
-        use std::collections::HashMap;
 
         let mut process_map: HashMap<u32, (String, String)> = HashMap::new(); // pid -> (name, command)
         let mut process_connections: HashMap<u32, u32> = HashMap::new(); // pid -> total connections

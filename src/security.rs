@@ -368,7 +368,6 @@ pub fn check_security_rate_limit(source: &str, max_per_minute: u32) -> Result<()
 }
 
 /// Get security statistics from the global monitor
-#[allow(static_mut_refs)]
 pub fn get_security_statistics() -> Option<SecurityStatistics> {
     unsafe {
         SECURITY_MONITOR
@@ -378,7 +377,6 @@ pub fn get_security_statistics() -> Option<SecurityStatistics> {
 }
 
 /// Check for security anomalies
-#[allow(static_mut_refs)]
 pub fn check_security_anomalies() -> Vec<SecurityAnomaly> {
     unsafe {
         SECURITY_MONITOR

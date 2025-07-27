@@ -792,7 +792,6 @@ fn run_enhanced_terminal_mode(
     use crate::stats::StatsCalculator;
     use connections::ConnectionMonitor;
     use processes::ProcessMonitor;
-    use std::collections::HashMap;
     use std::thread;
     use std::time::Duration;
 

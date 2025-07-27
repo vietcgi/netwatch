@@ -479,8 +479,6 @@ pub fn run_dashboard(
                     "Key: {:?}, Modifiers: {:?}, Event: {:?}\n",
                     key.code, key.modifiers, input_event
                 );
-                use std::fs::OpenOptions;
-                use std::io::Write;
                 if let Ok(mut file) = OpenOptions::new()
                     .create(true)
                     .append(true)
@@ -3822,10 +3820,6 @@ fn draw_graphs_panel(
 }
 
 fn draw_diagnostics_panel(f: &mut Frame, area: Rect, state: &DashboardState) {
-    use ratatui::{
-        layout::{Constraint, Direction},
-        widgets::{List, ListItem},
-    };
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -3904,10 +3898,6 @@ fn draw_alerts_panel(
     state: &DashboardState,
     stats_calculators: &HashMap<String, StatsCalculator>,
 ) {
-    use ratatui::{
-        layout::{Constraint, Direction},
-        widgets::{List, ListItem},
-    };
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
