@@ -1,5 +1,5 @@
 [package]
-name = "netwatch"
+name = "netwatch-tui"
 version = "0.1.7"
 edition = "2021"
 rust-version = "1.70"
