@@ -25,8 +25,12 @@ pub struct Args {
     pub max_outgoing: u64,
 
     /// Refresh interval in milliseconds
-    #[arg(short = 't', long = "interval", default_value = "500")]
+    #[arg(short = 't', long = "interval", default_value = "1000")]
     pub refresh_interval: u64,
+
+    /// High performance mode - reduces CPU usage for heavy traffic scenarios
+    #[arg(long = "high-perf", help = "Enable high performance mode (slower updates, less CPU)")]
+    pub high_performance: bool,
 
     /// Traffic unit format (h=human-bit, H=human-byte, b=bit, B=byte, k=kbit, K=kbyte, m=mbit, M=mbyte, g=gbit, G=gbyte)
     #[arg(short = 'u', long = "unit", default_value = "k")]

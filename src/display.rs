@@ -86,8 +86,13 @@ pub fn run_ui(
     let mut last_update = Instant::now();
 
     loop {
-        // Handle input events
-        if event::poll(Duration::from_millis(50))? {
+        // Handle input events - scale polling based on refresh rate for performance
+        let poll_interval = if config.high_performance { 
+            (config.refresh_interval / 5).max(100).min(200)
+        } else {
+            (config.refresh_interval / 10).max(50).min(100)
+        };
+        if event::poll(Duration::from_millis(poll_interval))? {
             if let Event::Key(key_event) = event::read()? {
                 let input_event = InputEvent::from_key_event(key_event);
 
