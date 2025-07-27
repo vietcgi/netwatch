@@ -1,3 +1,4 @@
+use crate::validation;
 use clap::Parser;
 
 #[derive(Parser, Default)]
@@ -94,6 +95,33 @@ pub enum TrafficUnit {
 }
 
 pub use TrafficUnit as DataUnit;
+
+impl Args {
+    /// Validate all command-line arguments for security
+    pub fn validate(&self) -> crate::error::Result<()> {
+        // Validate device names
+        for device in &self.devices {
+            validation::validate_interface_name(device)?;
+        }
+
+        // Validate refresh interval
+        validation::validate_refresh_interval(self.refresh_interval)?;
+
+        // Validate bandwidth values
+        validation::validate_bandwidth(self.max_incoming)?;
+        validation::validate_bandwidth(self.max_outgoing)?;
+
+        // Validate log file path if provided
+        if let Some(ref log_file) = self.log_file {
+            if log_file != "-" {
+                // stdout is allowed
+                validation::validate_file_path(log_file, Some("log"))?;
+            }
+        }
+
+        Ok(())
+    }
+}
 
 impl TrafficUnit {
     #[must_use]

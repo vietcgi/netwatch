@@ -1,5 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use netwatch::platform;
+use std::hint::black_box;
 
 fn benchmark_interface_listing(c: &mut Criterion) {
     c.bench_function("list_network_interfaces", |b| {

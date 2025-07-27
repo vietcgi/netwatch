@@ -1,4 +1,5 @@
 use crate::stats::StatsCalculator;
+use crate::validation;
 use chrono::Local;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -14,6 +15,8 @@ impl TrafficLogger {
             if path == "-" {
                 (None, true) // stdout logging
             } else {
+                // Validate log file path for security
+                validation::validate_file_path(&path, Some("log"))?;
                 let f = OpenOptions::new().create(true).append(true).open(path)?;
                 (Some(f), false)
             }
@@ -50,6 +53,9 @@ impl TrafficLogger {
     }
 
     pub fn log_traffic(&mut self, device: &str, stats: &StatsCalculator) -> anyhow::Result<()> {
+        // Validate device name for security
+        validation::validate_interface_name(device)?;
+
         let now = Local::now();
         let timestamp = now.timestamp();
         let microseconds = now.timestamp_subsec_micros();

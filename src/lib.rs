@@ -40,9 +40,11 @@ pub mod network_intelligence;
 pub mod platform;
 pub mod processes;
 pub mod safe_system;
+pub mod security;
 pub mod simple_overview;
 pub mod stats;
 pub mod system;
+pub mod validation;
 
 use anyhow::Result;
 use cli::Args;
@@ -71,6 +73,12 @@ use std::collections::HashMap;
 /// run(args).expect("Failed to run netwatch");
 /// ```
 pub fn run(args: Args) -> Result<()> {
+    // Initialize security monitoring
+    security::init_security_monitor();
+
+    // Validate all arguments for security
+    args.validate().map_err(|e| anyhow::anyhow!(e))?;
+
     // Handle simple commands first
     if args.list {
         return list_interfaces();
@@ -116,6 +124,11 @@ pub fn run(args: Args) -> Result<()> {
             args.devices.clone()
         };
 
+        // Validate interface names for security
+        for interface in &interfaces {
+            validation::validate_interface_name(interface)?;
+        }
+
         // Validate that provided interfaces exist
         let available_interfaces = reader.list_devices()?;
         for interface in &interfaces {
@@ -157,6 +170,11 @@ pub fn run(args: Args) -> Result<()> {
 
     if interfaces.is_empty() {
         anyhow::bail!("No network interfaces found");
+    }
+
+    // Validate interface names for security
+    for interface in &interfaces {
+        validation::validate_interface_name(interface)?;
     }
 
     // Validate that provided interfaces exist

@@ -1,0 +1,32 @@
+[package]
+name = "netwatch-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.netwatch]
+path = ".."
+
+[[bin]]
+name = "stats_parsing"
+path = "fuzz_targets/stats_parsing.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "interface_validation"
+path = "fuzz_targets/interface_validation.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "config_validation"
+path = "fuzz_targets/config_validation.rs"
+test = false
+doc = false

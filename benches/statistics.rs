@@ -1,5 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use netwatch::{device::NetworkStats, stats::StatsCalculator};
+use std::hint::black_box;
 use std::time::{Duration, SystemTime};
 
 fn create_sample_stats(bytes_in: u64, bytes_out: u64) -> NetworkStats {
