@@ -13,8 +13,8 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use netwatch::cli::Args;
-//! use netwatch::run;
+//! use netwatch_rs::cli::Args;
+//! use netwatch_rs::run;
 //!
 //! let args = Args {
 //!     devices: vec!["en0".to_string()],
@@ -67,7 +67,7 @@ use std::collections::HashMap;
 /// # Example
 ///
 /// ```rust,no_run
-/// use netwatch::{cli::Args, run};
+/// use netwatch_rs::{cli::Args, run};
 ///
 /// let args = Args::default();
 /// run(args).expect("Failed to run netwatch");

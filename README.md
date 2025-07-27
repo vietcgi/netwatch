@@ -46,7 +46,7 @@ INSTALL_DIR=~/.local/bin curl -sSL https://raw.githubusercontent.com/vietcgi/net
 #### Package Managers
 ```bash
 # Rust/Cargo
-cargo install netwatch
+cargo install netwatch-rs
 
 # Homebrew (macOS)
 brew install netwatch
@@ -276,14 +276,41 @@ netwatch --list
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Quick Start for Contributors
+### Development Setup
 ```bash
+# Clone the repository
 git clone https://github.com/vietcgi/netwatch
 cd netwatch
-cargo test
-cargo clippy
-cargo fmt
+
+# Initial setup (installs git hooks, builds project)
+make setup
+
+# Development workflow
+make dev          # Run fmt, clippy, and tests
+make check        # Run all quality checks
+make help         # Show all available commands
 ```
+
+### Git Hooks
+This project uses automated git hooks for code quality:
+- **Pre-commit**: Runs `cargo fmt`, `cargo clippy`, and `cargo test`
+- **Auto-installation**: Run `make setup` or `./scripts/setup-hooks.sh`
+
+### Development Commands
+```bash
+make build        # Build the project  
+make test         # Run tests
+make fmt          # Format code
+make clippy       # Run linting
+make clean        # Clean build artifacts
+make install      # Install locally
+make watch        # Watch for changes
+```
+
+### Package Information
+- **Crate name**: `netwatch-rs` (on crates.io)
+- **Binary name**: `netwatch` (command users run)
+- **Repository**: `vietcgi/netwatch` (GitHub)
 
 ## 📄 License
 
