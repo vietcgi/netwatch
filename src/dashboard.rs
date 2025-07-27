@@ -833,7 +833,14 @@ fn draw_dashboard(
             draw_alerts_panel(f, chunks[1], state, stats_calculators);
         }
         DashboardPanel::Forensics => {
-            draw_forensics_panel(f, chunks[1], state);
+            // Wrap entire forensics panel in panic protection
+            if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                draw_forensics_panel(f, chunks[1], state)
+            }))
+            .is_err()
+            {
+                draw_forensics_error(f, chunks[1]);
+            }
         }
         DashboardPanel::Settings => {
             draw_settings_panel(f, chunks[1], state);
@@ -4026,11 +4033,23 @@ fn draw_forensics_panel(f: &mut Frame, area: Rect, state: &mut DashboardState) {
         ])
         .split(area);
 
-    // Left side: GeoIP analysis and threat intelligence
-    draw_geo_threat_intelligence(f, main_chunks[0], state);
+    // Left side: GeoIP analysis and threat intelligence - with panic protection
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        draw_geo_threat_intelligence(f, main_chunks[0], state)
+    }))
+    .is_err()
+    {
+        draw_forensics_error(f, main_chunks[0]);
+    }
 
-    // Right side: Port scan detection and security anomalies
-    draw_security_anomalies(f, main_chunks[1], state);
+    // Right side: Port scan detection and security anomalies - with panic protection
+    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        draw_security_anomalies(f, main_chunks[1], state)
+    }))
+    .is_err()
+    {
+        draw_forensics_error(f, main_chunks[1]);
+    }
 }
 
 fn draw_simplified_forensics(f: &mut Frame, area: Rect, _state: &mut DashboardState) {
@@ -4077,42 +4096,40 @@ fn draw_geo_threat_intelligence(f: &mut Frame, area: Rect, state: &mut Dashboard
         ])
         .split(area);
 
-    // Use cached connections if available, otherwise get fresh data (expensive)
-    let connections = if let Ok(cached_count) = state.parallel_data.connection_count.lock() {
-        if *cached_count > 0 {
-            // Use a subset for performance - only get top 10 for forensics
-            state
-                .connection_monitor
-                .get_connections()
-                .iter()
-                .take(10)
-                .cloned()
-                .collect()
-        } else {
-            Vec::new()
+    // Safely get connections with error handling to prevent crashes
+    let connections = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        state.connection_monitor.get_connections()
+    })) {
+        Ok(conns) => {
+            // Limit to maximum 2 connections to prevent performance issues
+            conns.iter().take(2).cloned().collect::<Vec<_>>()
         }
-    } else {
-        // Fallback - limit to 5 connections for performance
-        state
-            .connection_monitor
-            .get_connections()
-            .iter()
-            .take(5)
-            .cloned()
-            .collect()
+        Err(_) => {
+            // If getting connections panics, show safe fallback UI
+            draw_forensics_error(f, area);
+            return;
+        }
     };
 
     let mut threat_data = Vec::new();
     let mut geo_stats = std::collections::HashMap::new();
     let mut suspicious_count = 0;
 
-    // Analyze connections with reduced overhead (limit expensive analyze_connection calls)
+    // Safely analyze connections with panic protection
     let analysis_results: Vec<_> = connections
         .iter()
-        .take(3) // Reduce from unlimited to 3 for performance
-        .map(|connection| {
-            let connection_intel = state.network_intelligence.analyze_connection(connection);
-            (connection, connection_intel)
+        .take(2) // Further reduce to 2 for stability
+        .filter_map(|connection| {
+            // Wrap analysis in panic catch to prevent crashes
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                state.network_intelligence.analyze_connection(connection)
+            })) {
+                Ok(connection_intel) => Some((connection, connection_intel)),
+                Err(_) => {
+                    // Skip this connection if analysis panics
+                    None
+                }
+            }
         })
         .collect();
 
@@ -4284,19 +4301,20 @@ fn draw_security_anomalies(f: &mut Frame, area: Rect, state: &mut DashboardState
         ])
         .split(area);
 
-    // Port Scan Detection Panel - throttle expensive calls
-    let port_scan_alerts = if let Ok(last_update) = state.parallel_data.last_update.lock() {
-        // Only update port scan data every 5 seconds to improve performance
-        if last_update.elapsed().as_secs() > 5 {
-            state.network_intelligence.get_port_scan_alerts()
+    // Port Scan Detection Panel - with panic protection and throttling
+    let port_scan_alerts = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if let Ok(last_update) = state.parallel_data.last_update.lock() {
+            // Only update port scan data every 10 seconds to improve stability
+            if last_update.elapsed().as_secs() > 10 {
+                state.network_intelligence.get_port_scan_alerts()
+            } else {
+                Vec::new()
+            }
         } else {
-            // Use cached data or empty result for performance
             Vec::new()
         }
-    } else {
-        // Fallback - skip expensive operation
-        Vec::new()
-    };
+    }))
+    .unwrap_or_default();
     let mut scan_content = vec![
         Line::from(vec![Span::styled(
             "🎯 PORT SCAN DETECTION",
@@ -4410,9 +4428,17 @@ fn draw_security_anomalies(f: &mut Frame, area: Rect, state: &mut DashboardState
 }
 
 fn draw_connection_forensics_table(f: &mut Frame, area: Rect, state: &mut DashboardState) {
-    // Limit connections to improve performance - only show top 4 in forensics
-    let connections = state.connection_monitor.get_connections();
-    let limited_connections: Vec<_> = connections.iter().take(4).collect();
+    // Safely get connections with panic protection
+    let connections = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        state.connection_monitor.get_connections()
+    })) {
+        Ok(conns) => conns,
+        Err(_) => {
+            // Return empty connections if it panics
+            return; // Exit early if connection monitor panics
+        }
+    };
+    let limited_connections: Vec<_> = connections.iter().take(2).collect(); // Reduced to 2 for stability
     let mut rows = Vec::new();
 
     // Header row
@@ -4430,9 +4456,17 @@ fn draw_connection_forensics_table(f: &mut Frame, area: Rect, state: &mut Dashbo
             .add_modifier(Modifier::BOLD),
     );
 
-    // Process limited connections through intelligence engine (expensive operation)
+    // Process limited connections with panic protection
     for connection in limited_connections {
-        let connection_intel = state.network_intelligence.analyze_connection(connection);
+        let connection_intel = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            state.network_intelligence.analyze_connection(connection)
+        })) {
+            Ok(intel) => intel,
+            Err(_) => {
+                // Skip this connection if analysis panics
+                continue;
+            }
+        };
 
         let country = connection_intel
             .geo_info
@@ -6398,4 +6432,37 @@ fn draw_listening_services(f: &mut Frame, area: Rect, state: &DashboardState) {
         .style(Style::default().fg(Color::White));
 
     f.render_widget(services_widget, area);
+}
+
+fn draw_forensics_error(f: &mut Frame, area: Rect) {
+    let block = Block::default()
+        .title("🔍 Security Forensics (Error Recovery)")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Red));
+
+    let paragraph = Paragraph::new(vec![
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "⚠️ Forensics Analysis Error",
+            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+        )]),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "• Connection monitoring experienced an issue",
+            Style::default().fg(Color::White),
+        )]),
+        Line::from(vec![Span::styled(
+            "• Forensics disabled for stability",
+            Style::default().fg(Color::White),
+        )]),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "  System will recover automatically",
+            Style::default().fg(Color::Gray),
+        )]),
+    ])
+    .block(block)
+    .alignment(Alignment::Center);
+
+    f.render_widget(paragraph, area);
 }
