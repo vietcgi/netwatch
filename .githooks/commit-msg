@@ -1,0 +1,34 @@
+#!/bin/sh
+# Commit message hook for netwatch
+# Enforces conventional commit format
+
+set -e
+
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,50}'
+
+error_msg="Aborting commit. Your commit message is invalid. See examples:
+feat: add network interface filtering
+fix: resolve memory leak in stats collection
+docs: update installation instructions
+style: format code according to rustfmt
+refactor: simplify security validation logic
+perf: optimize circular buffer implementation
+test: add benchmarks for stats calculation
+build: update dependencies
+ci: fix release workflow
+chore: update gitignore
+revert: revert previous commit
+
+The commit message must:
+- Start with a type: feat, fix, docs, style, refactor, perf, test, build, ci, chore, or revert
+- Optionally include a scope in parentheses: feat(security): 
+- Have a colon and space after the type/scope
+- Have a concise description (1-50 characters)
+- Be in lowercase"
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo "$error_msg" >&2
+    exit 1
+fi
+
+echo "✅ Commit message format is valid!"

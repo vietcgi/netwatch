@@ -31,6 +31,17 @@ else
     exit 1
 fi
 
+# Install commit-msg hook
+if [ -f "$HOOKS_DIR/commit-msg" ]; then
+    echo "📋 Installing commit-msg hook..."
+    cp "$HOOKS_DIR/commit-msg" "$GIT_HOOKS_DIR/commit-msg"
+    chmod +x "$GIT_HOOKS_DIR/commit-msg"
+    echo "✅ Commit-msg hook installed"
+else
+    echo "❌ Commit-msg hook not found at $HOOKS_DIR/commit-msg"
+    exit 1
+fi
+
 # Test the hooks
 echo "🧪 Testing hooks..."
 if [ -x "$GIT_HOOKS_DIR/pre-commit" ]; then
@@ -40,9 +51,29 @@ else
     exit 1
 fi
 
+if [ -x "$GIT_HOOKS_DIR/commit-msg" ]; then
+    echo "✅ Commit-msg hook is executable"
+else
+    echo "❌ Commit-msg hook is not executable"
+    exit 1
+fi
+
 echo "🎉 Git hooks setup complete!"
 echo ""
 echo "The following hooks are now active:"
 echo "  - pre-commit: Runs cargo fmt, clippy, and tests"
+echo "  - commit-msg: Enforces conventional commit message format"
+echo ""
+echo "Conventional commit format:"
+echo "  feat: add new feature"
+echo "  fix: bug fix"
+echo "  docs: documentation changes"
+echo "  style: code formatting"
+echo "  refactor: code refactoring"
+echo "  perf: performance improvements"
+echo "  test: adding tests"
+echo "  build: build system changes"
+echo "  ci: CI/CD changes"
+echo "  chore: maintenance tasks"
 echo ""
 echo "To bypass hooks temporarily, use: git commit --no-verify"

@@ -294,7 +294,28 @@ make help         # Show all available commands
 ### Git Hooks
 This project uses automated git hooks for code quality:
 - **Pre-commit**: Runs `cargo fmt`, `cargo clippy`, and `cargo test`
+- **Commit-msg**: Enforces conventional commit message format
 - **Auto-installation**: Run `make setup` or `./scripts/setup-hooks.sh`
+
+#### Conventional Commits
+All commits must follow the conventional commit format:
+```
+<type>: <description>
+
+Examples:
+feat: add network interface filtering
+fix: resolve memory leak in stats collection
+docs: update installation instructions
+style: format code according to rustfmt
+refactor: simplify security validation logic
+perf: optimize circular buffer implementation
+test: add benchmarks for stats calculation
+build: update dependencies
+ci: fix release workflow
+chore: update gitignore
+```
+
+**Supported types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
 ### Development Commands
 ```bash
