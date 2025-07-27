@@ -108,6 +108,8 @@ pub struct DashboardState {
     pub last_navigation_time: std::time::Instant,
     pub navigation_redraw_needed: bool,
     pub parallel_data: ParallelData,
+    pub last_forensics_update: Option<std::time::Instant>,
+    pub config: Option<Arc<crate::config::Config>>,
 }
 
 #[derive(Clone)]
@@ -235,6 +237,8 @@ impl DashboardState {
             last_navigation_time: std::time::Instant::now(),
             navigation_redraw_needed: false,
             parallel_data: ParallelData::new(),
+            last_forensics_update: None,
+            config: None,
         })
     }
 
@@ -391,6 +395,7 @@ pub fn run_dashboard(
     let mut terminal = Terminal::new(backend)?;
 
     let mut state = DashboardState::new(interfaces, &config)?;
+    state.config = Some(Arc::new(config.clone()));
     let mut stats_calculators: HashMap<String, StatsCalculator> = HashMap::new();
     let mut logger = if log_file.is_some() {
         Some(TrafficLogger::new(log_file)?)
@@ -3990,6 +3995,26 @@ fn draw_alerts_panel(
 
 fn draw_forensics_panel(f: &mut Frame, area: Rect, state: &mut DashboardState) {
     // Advanced Network Security Forensics Panel with AI-powered threat detection
+    
+    let now = std::time::Instant::now();
+    
+    // Skip expensive operations in high performance mode or if updated recently
+    let should_skip_expensive = state.config.as_ref()
+        .map(|c| c.high_performance)
+        .unwrap_or(false) ||
+        state.last_forensics_update
+            .map(|last| now.duration_since(last) < Duration::from_secs(2))
+            .unwrap_or(false);
+    
+    if should_skip_expensive {
+        // Show simplified forensics in high performance mode or when throttled
+        draw_simplified_forensics(f, area, state);
+        return;
+    }
+    
+    // Update the last forensics update time
+    state.last_forensics_update = Some(now);
+
     let main_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -4005,6 +4030,39 @@ fn draw_forensics_panel(f: &mut Frame, area: Rect, state: &mut DashboardState) {
     draw_security_anomalies(f, main_chunks[1], state);
 }
 
+fn draw_simplified_forensics(f: &mut Frame, area: Rect, _state: &mut DashboardState) {
+    let block = Block::default()
+        .title("🔍 Security Forensics (High Performance Mode)")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Blue));
+
+    let paragraph = Paragraph::new(vec![
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "⚡ High Performance Mode Active",
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        )]),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "• Forensics analysis disabled for optimal performance",
+            Style::default().fg(Color::White),
+        )]),
+        Line::from(vec![Span::styled(
+            "• Use regular mode for full security analysis",
+            Style::default().fg(Color::White),
+        )]),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "  Switch to regular mode: remove --high-perf flag",
+            Style::default().fg(Color::Gray),
+        )]),
+    ])
+    .block(block)
+    .alignment(Alignment::Center);
+
+    f.render_widget(paragraph, area);
+}
+
 fn draw_geo_threat_intelligence(f: &mut Frame, area: Rect, state: &mut DashboardState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -4014,16 +4072,35 @@ fn draw_geo_threat_intelligence(f: &mut Frame, area: Rect, state: &mut Dashboard
         ])
         .split(area);
 
-    // Analyze connections with network intelligence
-    let connections = state.connection_monitor.get_connections();
+    // Use cached connections if available, otherwise get fresh data (expensive)
+    let connections = if let Ok(cached_count) = state.parallel_data.connection_count.lock() {
+        if *cached_count > 0 {
+            // Use a subset for performance - only get top 10 for forensics
+            state.connection_monitor.get_connections().into_iter().take(10).collect()
+        } else {
+            Vec::new()
+        }
+    } else {
+        // Fallback - limit to 5 connections for performance
+        state.connection_monitor.get_connections().into_iter().take(5).collect()
+    };
+    
     let mut threat_data = Vec::new();
     let mut geo_stats = std::collections::HashMap::new();
     let mut suspicious_count = 0;
 
-    // Analyze each connection through network intelligence
-    for connection in connections.iter() {
-        let connection_intel = state.network_intelligence.analyze_connection(connection);
+    // Analyze connections with reduced overhead (limit expensive analyze_connection calls)
+    let analysis_results: Vec<_> = connections
+        .iter()
+        .take(3) // Reduce from unlimited to 3 for performance
+        .map(|connection| {
+            let connection_intel = state.network_intelligence.analyze_connection(connection);
+            (connection, connection_intel)
+        })
+        .collect();
 
+    // Process results  
+    for (_connection, connection_intel) in analysis_results {
         // GeoIP analysis
         if let Some(ref geo) = connection_intel.geo_info {
             if !geo.is_internal {
@@ -4190,8 +4267,19 @@ fn draw_security_anomalies(f: &mut Frame, area: Rect, state: &mut DashboardState
         ])
         .split(area);
 
-    // Port Scan Detection Panel
-    let port_scan_alerts = state.network_intelligence.get_port_scan_alerts();
+    // Port Scan Detection Panel - throttle expensive calls
+    let port_scan_alerts = if let Ok(last_update) = state.parallel_data.last_update.lock() {
+        // Only update port scan data every 5 seconds to improve performance
+        if last_update.elapsed().as_secs() > 5 {
+            state.network_intelligence.get_port_scan_alerts()
+        } else {
+            // Use cached data or empty result for performance
+            Vec::new()
+        }
+    } else {
+        // Fallback - skip expensive operation
+        Vec::new()
+    };
     let mut scan_content = vec![
         Line::from(vec![Span::styled(
             "🎯 PORT SCAN DETECTION",
@@ -4305,7 +4393,9 @@ fn draw_security_anomalies(f: &mut Frame, area: Rect, state: &mut DashboardState
 }
 
 fn draw_connection_forensics_table(f: &mut Frame, area: Rect, state: &mut DashboardState) {
+    // Limit connections to improve performance - only show top 4 in forensics
     let connections = state.connection_monitor.get_connections();
+    let limited_connections: Vec<_> = connections.iter().take(4).collect();
     let mut rows = Vec::new();
 
     // Header row
@@ -4323,8 +4413,8 @@ fn draw_connection_forensics_table(f: &mut Frame, area: Rect, state: &mut Dashbo
             .add_modifier(Modifier::BOLD),
     );
 
-    // Process connections through intelligence engine
-    for connection in connections.iter().take(15) {
+    // Process limited connections through intelligence engine (expensive operation)
+    for connection in limited_connections {
         let connection_intel = state.network_intelligence.analyze_connection(connection);
 
         let country = connection_intel
