@@ -1,0 +1,21 @@
+# Target directory (but keep Cargo.lock)
+target/
+# Git
+.git/
+.gitignore
+# CI/CD
+.github/
+# Documentation (but keep Cargo.toml and Cargo.lock)
+README.md
+CHANGELOG.md
+LICENSE
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+# OS files
+.DS_Store
+Thumbs.db
+# Other
+homebrew-tap/
