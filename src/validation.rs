@@ -29,7 +29,7 @@ const MIN_REFRESH_INTERVAL: u64 = 100; // 0.1 seconds
 ///
 /// # Examples
 /// ```
-/// use netwatch::validation::validate_interface_name;
+/// use netwatch_rs::validation::validate_interface_name;
 ///
 /// assert!(validate_interface_name("eth0").is_ok());
 /// assert!(validate_interface_name("wlan0").is_ok());
@@ -124,7 +124,7 @@ pub fn validate_interface_name(name: &str) -> Result<()> {
 ///
 /// # Examples
 /// ```
-/// use netwatch::validation::validate_file_path;
+/// use netwatch_rs::validation::validate_file_path;
 ///
 /// assert!(validate_file_path("/tmp/netwatch.log", Some("log")).is_ok());
 /// assert!(validate_file_path("../../../etc/passwd", None).is_err());

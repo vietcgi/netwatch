@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use netwatch::platform;
+use netwatch_rs::platform;
 use std::hint::black_box;
 
 fn benchmark_interface_listing(c: &mut Criterion) {

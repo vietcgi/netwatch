@@ -3820,7 +3820,6 @@ fn draw_graphs_panel(
 }
 
 fn draw_diagnostics_panel(f: &mut Frame, area: Rect, state: &DashboardState) {
-
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(10)])
@@ -3898,7 +3897,6 @@ fn draw_alerts_panel(
     state: &DashboardState,
     stats_calculators: &HashMap<String, StatsCalculator>,
 ) {
-
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(10)])

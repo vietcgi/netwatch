@@ -1,4 +1,4 @@
-use netwatch::{
+use netwatch_rs::{
     device::{NetworkReader, NetworkStats},
     stats::StatsCalculator,
 };
@@ -8,11 +8,11 @@ use std::time::{Duration, SystemTime};
 struct MockReader;
 
 impl NetworkReader for MockReader {
-    fn list_devices(&self) -> netwatch::error::Result<Vec<String>> {
+    fn list_devices(&self) -> netwatch_rs::error::Result<Vec<String>> {
         Ok(vec!["eth0".to_string(), "wlan0".to_string()])
     }
 
-    fn read_stats(&self, device: &str) -> netwatch::error::Result<NetworkStats> {
+    fn read_stats(&self, device: &str) -> netwatch_rs::error::Result<NetworkStats> {
         // Generate some mock data
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};

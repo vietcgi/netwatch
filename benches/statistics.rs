@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use netwatch::{device::NetworkStats, stats::StatsCalculator};
+use netwatch_rs::{device::NetworkStats, stats::StatsCalculator};
 use std::hint::black_box;
 use std::time::{Duration, SystemTime};
 
