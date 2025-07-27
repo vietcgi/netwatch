@@ -69,12 +69,20 @@ detect_platform() {
     
     # Determine static vs dynamic linking preference for Linux
     if [[ "$os" == "linux" ]]; then
+        # Check glibc version for compatibility
+        local glibc_version=""
         if command -v ldd >/dev/null 2>&1; then
-            # Use glibc version for systems with dynamic linking
-            echo "${os}-${arch}"
-        else
-            # Use musl static version for systems without glibc or minimal systems
+            # Extract glibc version
+            glibc_version=$(ldd --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+' | head -n1 || echo "")
+        fi
+        
+        # Use musl static binary for older glibc versions or when glibc detection fails
+        if [[ -z "$glibc_version" ]] || [[ "$glibc_version" < "2.35" ]]; then
+            info "Detected older glibc version ($glibc_version) or minimal system - using static musl binary for better compatibility"
             echo "${os}-${arch}-musl"
+        else
+            info "Detected modern glibc version ($glibc_version) - using dynamic binary"
+            echo "${os}-${arch}"
         fi
     else
         echo "${os}-${arch}"
