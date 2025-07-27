@@ -29,7 +29,10 @@ pub struct Args {
     pub refresh_interval: u64,
 
     /// High performance mode - reduces CPU usage for heavy traffic scenarios
-    #[arg(long = "high-perf", help = "Enable high performance mode (slower updates, less CPU)")]
+    #[arg(
+        long = "high-perf",
+        help = "Enable high performance mode (slower updates, less CPU)"
+    )]
     pub high_performance: bool,
 
     /// Traffic unit format (h=human-bit, H=human-byte, b=bit, B=byte, k=kbit, K=kbyte, m=mbit, M=mbyte, g=gbit, G=gbyte)

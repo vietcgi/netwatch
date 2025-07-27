@@ -87,7 +87,7 @@ pub fn run_ui(
 
     loop {
         // Handle input events - scale polling based on refresh rate for performance
-        let poll_interval = if config.high_performance { 
+        let poll_interval = if config.high_performance {
             (config.refresh_interval / 5).max(100).min(200)
         } else {
             (config.refresh_interval / 10).max(50).min(100)
