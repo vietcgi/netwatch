@@ -3995,23 +3995,26 @@ fn draw_alerts_panel(
 
 fn draw_forensics_panel(f: &mut Frame, area: Rect, state: &mut DashboardState) {
     // Advanced Network Security Forensics Panel with AI-powered threat detection
-    
+
     let now = std::time::Instant::now();
-    
+
     // Skip expensive operations in high performance mode or if updated recently
-    let should_skip_expensive = state.config.as_ref()
+    let should_skip_expensive = state
+        .config
+        .as_ref()
         .map(|c| c.high_performance)
-        .unwrap_or(false) ||
-        state.last_forensics_update
+        .unwrap_or(false)
+        || state
+            .last_forensics_update
             .map(|last| now.duration_since(last) < Duration::from_secs(2))
             .unwrap_or(false);
-    
+
     if should_skip_expensive {
         // Show simplified forensics in high performance mode or when throttled
         draw_simplified_forensics(f, area, state);
         return;
     }
-    
+
     // Update the last forensics update time
     state.last_forensics_update = Some(now);
 
@@ -4040,7 +4043,9 @@ fn draw_simplified_forensics(f: &mut Frame, area: Rect, _state: &mut DashboardSt
         Line::from(""),
         Line::from(vec![Span::styled(
             "⚡ High Performance Mode Active",
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
         Line::from(vec![Span::styled(
@@ -4076,15 +4081,27 @@ fn draw_geo_threat_intelligence(f: &mut Frame, area: Rect, state: &mut Dashboard
     let connections = if let Ok(cached_count) = state.parallel_data.connection_count.lock() {
         if *cached_count > 0 {
             // Use a subset for performance - only get top 10 for forensics
-            state.connection_monitor.get_connections().into_iter().take(10).collect()
+            state
+                .connection_monitor
+                .get_connections()
+                .iter()
+                .take(10)
+                .cloned()
+                .collect()
         } else {
             Vec::new()
         }
     } else {
         // Fallback - limit to 5 connections for performance
-        state.connection_monitor.get_connections().into_iter().take(5).collect()
+        state
+            .connection_monitor
+            .get_connections()
+            .iter()
+            .take(5)
+            .cloned()
+            .collect()
     };
-    
+
     let mut threat_data = Vec::new();
     let mut geo_stats = std::collections::HashMap::new();
     let mut suspicious_count = 0;
@@ -4099,7 +4116,7 @@ fn draw_geo_threat_intelligence(f: &mut Frame, area: Rect, state: &mut Dashboard
         })
         .collect();
 
-    // Process results  
+    // Process results
     for (_connection, connection_intel) in analysis_results {
         // GeoIP analysis
         if let Some(ref geo) = connection_intel.geo_info {
