@@ -772,7 +772,7 @@ fn draw_dashboard(
             Constraint::Min(0),    // Main content
             Constraint::Length(3), // Footer with help
         ])
-        .split(f.size());
+        .split(f.area());
 
     // Draw header with panel tabs
     draw_header(f, chunks[0], state);
@@ -2525,23 +2525,25 @@ fn draw_ultra_connection_forensics_table(
         })
         .collect();
 
-    let table = Table::new(rows)
-        .header(header)
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(6),
             Constraint::Length(12),
             Constraint::Length(20),
             Constraint::Length(8),
             Constraint::Length(15),
             Constraint::Length(12),
-        ])
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("🔍 ULTRA CONNECTION FORENSICS (Problems First)"),
-        )
-        .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
-        .highlight_symbol(">> ");
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("🔍 ULTRA CONNECTION FORENSICS (Problems First)"),
+    )
+    .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED))
+    .highlight_symbol(">> ");
 
     f.render_widget(table, area);
 }
@@ -3069,8 +3071,9 @@ fn draw_enhanced_connections_table(f: &mut Frame, area: Rect, state: &DashboardS
         })
         .collect();
 
-    let table = Table::new(rows)
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(10), // Quality
             Constraint::Length(6),  // Protocol
             Constraint::Length(18), // Local Address
@@ -3081,31 +3084,32 @@ fn draw_enhanced_connections_table(f: &mut Frame, area: Rect, state: &DashboardS
             Constraint::Length(8),  // Queue
             Constraint::Length(8),  // Retrans/Lost
             Constraint::Min(12),    // Process
+        ],
+    )
+    .header(
+        Row::new(vec![
+            "SRE Status",
+            "Proto",
+            "Local",
+            "Remote",
+            "State",
+            "RTT",
+            "BW",
+            "Queue",
+            "Issues",
+            "Process",
         ])
-        .header(
-            Row::new(vec![
-                "SRE Status",
-                "Proto",
-                "Local",
-                "Remote",
-                "State",
-                "RTT",
-                "BW",
-                "Queue",
-                "Issues",
-                "Process",
-            ])
-            .style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("🛡️ SRE NETWORK TROUBLESHOOTING - PROBLEMS FIRST"),
-        );
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("🛡️ SRE NETWORK TROUBLESHOOTING - PROBLEMS FIRST"),
+    );
 
     f.render_widget(table, area);
 }
@@ -3310,25 +3314,27 @@ fn draw_interface_list(
         })
         .collect();
 
-    let table = Table::new(rows)
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Percentage(25),
             Constraint::Percentage(25),
             Constraint::Percentage(25),
             Constraint::Percentage(25),
-        ])
-        .header(
-            Row::new(vec!["Interface", "In", "Out", "Status"]).style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Interface Traffic"),
-        );
+        ],
+    )
+    .header(
+        Row::new(vec!["Interface", "In", "Out", "Status"]).style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Interface Traffic"),
+    );
 
     f.render_widget(table, area);
 }
@@ -3588,8 +3594,9 @@ fn draw_system_panel(
         })
         .collect();
 
-    let process_table = Table::new(process_rows)
-        .widths(&[
+    let process_table = Table::new(
+        process_rows,
+        [
             Constraint::Length(8),  // PID
             Constraint::Length(15), // Name
             Constraint::Length(8),  // CPU%
@@ -3597,20 +3604,21 @@ fn draw_system_panel(
             Constraint::Length(10), // RSS
             Constraint::Length(12), // User
             Constraint::Length(8),  // State
-        ])
-        .header(
-            Row::new(vec!["PID", "Name", "CPU%", "Mem%", "RSS", "User", "State"]).style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("🔝 Top Processes by CPU"),
-        )
-        .highlight_style(Style::default().bg(Color::DarkGray));
+        ],
+    )
+    .header(
+        Row::new(vec!["PID", "Name", "CPU%", "Mem%", "RSS", "User", "State"]).style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("🔝 Top Processes by CPU"),
+    )
+    .row_highlight_style(Style::default().bg(Color::DarkGray));
 
     f.render_stateful_widget(process_table, chunks[2], &mut state.table_state);
 }
@@ -4358,23 +4366,25 @@ fn draw_connection_forensics_table(f: &mut Frame, area: Rect, state: &mut Dashbo
         ]));
     }
 
-    let table = Table::new(rows)
-        .header(header)
-        .block(
-            Block::default()
-                .title("🔍 Real-time Connection Forensics")
-                .borders(Borders::ALL)
-                .style(Style::default().fg(Color::Cyan)),
-        )
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(15), // IP
             Constraint::Length(6),  // Port
             Constraint::Length(12), // Service
             Constraint::Length(7),  // Country
             Constraint::Length(7),  // Threat
             Constraint::Length(12), // Process
-        ])
-        .column_spacing(1);
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .title("🔍 Real-time Connection Forensics")
+            .borders(Borders::ALL)
+            .style(Style::default().fg(Color::Cyan)),
+    )
+    .column_spacing(1);
 
     f.render_widget(table, area);
 }
@@ -4469,7 +4479,7 @@ fn draw_footer(f: &mut Frame, area: Rect, state: &DashboardState) {
 }
 
 fn draw_help_overlay(f: &mut Frame) {
-    let area = centered_rect(60, 70, f.size());
+    let area = centered_rect(60, 70, f.area());
 
     let help_text = vec![
         Line::from(vec![Span::styled(
@@ -5372,8 +5382,9 @@ fn draw_enhanced_interface_table(
         })
         .collect();
 
-    let table = Table::new(rows)
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(10), // Interface
             Constraint::Length(12), // In Current
             Constraint::Length(12), // Out Current
@@ -5381,28 +5392,29 @@ fn draw_enhanced_interface_table(
             Constraint::Length(12), // Out Avg
             Constraint::Length(6),  // Util%
             Constraint::Length(8),  // Status
+        ],
+    )
+    .header(
+        Row::new(vec![
+            "Interface",
+            "In (Now)",
+            "Out (Now)",
+            "In (Avg)",
+            "Out (Avg)",
+            "Util%",
+            "Status",
         ])
-        .header(
-            Row::new(vec![
-                "Interface",
-                "In (Now)",
-                "Out (Now)",
-                "In (Avg)",
-                "Out (Avg)",
-                "Util%",
-                "Status",
-            ])
-            .style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("📊 Interface Details"),
-        );
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("📊 Interface Details"),
+    );
 
     f.render_widget(table, area);
 }
@@ -5632,8 +5644,9 @@ fn draw_connections_list(f: &mut Frame, area: Rect, state: &DashboardState) {
         })
         .collect();
 
-    let table = Table::new(rows)
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(8),  // Protocol + Quality
             Constraint::Length(18), // Local Address
             Constraint::Length(18), // Remote Address
@@ -5642,22 +5655,23 @@ fn draw_connections_list(f: &mut Frame, area: Rect, state: &DashboardState) {
             Constraint::Length(10), // Bandwidth
             Constraint::Length(8),  // Queue
             Constraint::Min(12),    // Process
+        ],
+    )
+    .header(
+        Row::new(vec![
+            "Proto", "Local", "Remote", "State", "RTT", "BW", "Queue", "Process",
         ])
-        .header(
-            Row::new(vec![
-                "Proto", "Local", "Remote", "State", "RTT", "BW", "Queue", "Process",
-            ])
-            .style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("CONNECTION INTELLIGENCE"),
-        );
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("CONNECTION INTELLIGENCE"),
+    );
 
     f.render_widget(table, area);
 }
@@ -6146,8 +6160,9 @@ fn draw_process_list(f: &mut Frame, area: Rect, state: &DashboardState) {
         return;
     }
 
-    let table = Table::new(rows)
-        .widths(&[
+    let table = Table::new(
+        rows,
+        [
             Constraint::Length(8),  // PID
             Constraint::Length(15), // Name
             Constraint::Length(25), // Command
@@ -6155,22 +6170,23 @@ fn draw_process_list(f: &mut Frame, area: Rect, state: &DashboardState) {
             Constraint::Length(12), // Sent
             Constraint::Length(12), // Received
             Constraint::Length(12), // Total
+        ],
+    )
+    .header(
+        Row::new(vec![
+            "PID", "Name", "Command", "Conn", "Sent", "Recv", "Total",
         ])
-        .header(
-            Row::new(vec![
-                "PID", "Name", "Command", "Conn", "Sent", "Recv", "Total",
-            ])
-            .style(
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("⚡ Network Process Activity"),
-        );
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("⚡ Network Process Activity"),
+    );
 
     f.render_widget(table, area);
 }

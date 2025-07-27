@@ -17,6 +17,9 @@ pub enum NetwatchError {
 
     #[error("Platform error: {0}")]
     Platform(String),
+
+    #[error("Security error: {0}")]
+    Security(String),
 }
 
 pub type Result<T> = std::result::Result<T, NetwatchError>;

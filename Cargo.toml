@@ -19,14 +19,14 @@ exclude = ["debug.log", "target/", ".github/"]
 clap = { version = "4.0", features = ["derive"] }
 
 # Terminal UI with colors
-ratatui = "0.24"
-crossterm = "0.27"
+ratatui = "0.29"
+crossterm = "0.29"
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 
 # Unix-specific
@@ -34,16 +34,16 @@ libc = "0.2"
 
 # Configuration and data
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.8"
+toml = "0.9"
 
 # Utilities
-dirs = "5.0"
+dirs = "6.0"
 
 [dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.0"
 tempfile = "3.0"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 
 [[bin]]
 name = "netwatch"

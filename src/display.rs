@@ -376,7 +376,7 @@ fn draw_single_device_view(
             Constraint::Min(10),   // Main graphs/stats area
             Constraint::Length(3), // Status/help line
         ])
-        .split(f.size());
+        .split(f.area());
 
     // Get current device and its stats
     if let Some(device) = state.devices.get(state.current_device_index) {
@@ -397,7 +397,7 @@ fn draw_single_device_view(
 
         // Options overlay (if shown)
         if state.show_options {
-            draw_options_overlay(f, f.size(), state, config);
+            draw_options_overlay(f, f.area(), state, config);
         }
     }
 }
@@ -415,7 +415,7 @@ fn draw_multiple_devices_view(
             Constraint::Min(10),   // Device list
             Constraint::Length(3), // Status/help line
         ])
-        .split(f.size());
+        .split(f.area());
 
     // Header
     let header_text = if state.paused {
@@ -828,7 +828,7 @@ fn draw_single_graph_with_device(
                 .title("Time")
                 .style(Style::default().fg(Color::Gray))
                 .bounds([min_x, max_x])
-                .labels(vec!["Now".into(), "30s ago".into(), "1 min ago".into()]),
+                .labels(vec!["Now", "30s ago", "1 min ago"]),
         )
         .y_axis(
             Axis::default()
@@ -936,7 +936,7 @@ fn draw_single_graph(
                 .title("Time")
                 .style(Style::default().fg(Color::Gray))
                 .bounds([min_x, max_x])
-                .labels(vec!["Now".into(), "30s ago".into(), "1 min ago".into()]),
+                .labels(vec!["Now", "30s ago", "1 min ago"]),
         )
         .y_axis(
             Axis::default()
