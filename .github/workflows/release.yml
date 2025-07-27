@@ -153,11 +153,9 @@ jobs:
     - name: Strip binary (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-          aarch64-linux-gnu-strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-        elif [[ "${{ matrix.target }}" == "aarch64-unknown-linux-musl" ]]; then
-          # For musl targets, we may not have the specific strip, so skip stripping
-          echo "Skipping strip for musl target"
+        if [[ "${{ matrix.target }}" == *"aarch64"* ]]; then
+          # Skip stripping for ARM64 targets to avoid cross-compilation issues
+          echo "Skipping strip for ARM64 target: ${{ matrix.target }}"
         else
           strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
         fi
