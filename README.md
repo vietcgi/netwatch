@@ -31,14 +31,41 @@ A modern network traffic monitor for Unix systems, inspired by nload but written
 
 ### Installation
 
+#### Automated Installation (Recommended)
 ```bash
-# From source (recommended)
+# Install latest version
+curl -sSL https://raw.githubusercontent.com/vietcgi/netwatch/main/install.sh | bash
+
+# Or with wget
+wget -qO- https://raw.githubusercontent.com/vietcgi/netwatch/main/install.sh | bash
+
+# Install to custom directory
+INSTALL_DIR=~/.local/bin curl -sSL https://raw.githubusercontent.com/vietcgi/netwatch/main/install.sh | bash
+```
+
+#### Package Managers
+```bash
+# Rust/Cargo
+cargo install netwatch
+
+# Homebrew (macOS)
+brew install netwatch
+
+# Docker
+docker run --rm -it --net=host ghcr.io/vietcgi/netwatch:latest
+```
+
+#### Manual Download
+Download pre-built binaries from the [Releases page](https://github.com/vietcgi/netwatch/releases) for:
+- Linux x86_64 (glibc & musl)
+- Linux ARM64 (glibc & musl) 
+- macOS x86_64 & ARM64
+
+#### From Source
+```bash
 git clone https://github.com/vietcgi/netwatch
 cd netwatch
 cargo install --path .
-
-# From crates.io (when published)
-cargo install netwatch
 ```
 
 ### Basic Usage
