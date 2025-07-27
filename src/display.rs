@@ -104,6 +104,8 @@ pub fn run_ui(
 
         // Update network statistics
         if !state.paused && last_update.elapsed() >= refresh_interval {
+            let mut high_traffic_detected = false;
+            
             for device in &mut state.devices {
                 if device.update(reader.as_ref()).is_err() {
                     // Device unavailable, continue with others
@@ -113,12 +115,26 @@ pub fn run_ui(
                 if let Some(calculator) = stats_calculators.get_mut(&device.name) {
                     calculator.add_sample(device.stats.clone());
 
+                    // Check for high traffic conditions (>100MB/s total or >1000 packets/s)
+                    let (speed_in, speed_out) = calculator.current_speed();
+                    let (packets_in, packets_out) = calculator.total_packets();
+                    let total_speed = speed_in + speed_out;
+                    if total_speed > 100_000_000 || packets_in + packets_out > 1000 {
+                        high_traffic_detected = true;
+                    }
+
                     // Log traffic if logger is enabled
                     if let Some(ref mut logger) = logger {
                         let _ = logger.log_traffic(&device.name, calculator);
                     }
                 }
             }
+
+            // Auto-enable high performance security monitoring under heavy load
+            if high_traffic_detected && !config.high_performance {
+                crate::security::enable_high_performance_security(true);
+            }
+            
             last_update = Instant::now();
         }
 

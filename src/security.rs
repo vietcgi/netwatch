@@ -40,39 +40,116 @@ pub struct SecurityMonitor {
     event_counts: HashMap<String, u32>,
     rate_limits: HashMap<String, (Instant, u32)>,
     max_events: usize,
+    event_cursor: usize, // For circular buffer
+    last_cleanup: Instant,
+    high_performance_mode: bool,
+    events_this_second: u32,
+    current_second: u64,
 }
 
 impl SecurityMonitor {
     /// Create a new security monitor
     pub fn new() -> Self {
+        let now = Instant::now();
         Self {
-            events: Vec::new(),
+            events: Vec::with_capacity(1000),
             event_counts: HashMap::new(),
             rate_limits: HashMap::new(),
             max_events: 1000, // Keep last 1000 events
+            event_cursor: 0,
+            last_cleanup: now,
+            high_performance_mode: false,
+            events_this_second: 0,
+            current_second: now.elapsed().as_secs(),
+        }
+    }
+
+    /// Enable high performance mode for heavy traffic scenarios
+    pub fn set_high_performance_mode(&mut self, enabled: bool) {
+        self.high_performance_mode = enabled;
+        if enabled {
+            // Reduce buffer size for better performance
+            self.max_events = 500;
+            // Pre-allocate at reduced size
+            if self.events.capacity() > self.max_events {
+                self.events.truncate(self.max_events);
+                self.events.shrink_to_fit();
+            }
         }
     }
 
     /// Record a security event
     pub fn record_event(&mut self, event: SecurityEvent) {
         let now = Instant::now();
+        let current_second = now.elapsed().as_secs();
 
-        // Add to event log
-        self.events.push((now, event.clone()));
-
-        // Maintain size limit
-        if self.events.len() > self.max_events {
-            self.events.remove(0);
+        // Reset counter if we're in a new second
+        if current_second != self.current_second {
+            self.current_second = current_second;
+            self.events_this_second = 0;
         }
 
-        // Update event counts
-        let event_key = self.event_key(&event);
-        *self.event_counts.entry(event_key).or_insert(0) += 1;
+        // Throttle in high performance mode under heavy load
+        if self.high_performance_mode {
+            self.events_this_second += 1;
+            
+            // Skip non-critical events if we're seeing too many per second
+            if self.events_this_second > 100 && !self.is_critical_event(&event) {
+                return;
+            }
+            
+            // Hard limit even for critical events
+            if self.events_this_second > 500 {
+                return;
+            }
+        }
+
+        // Use circular buffer approach for better performance
+        if self.events.len() < self.max_events {
+            self.events.push((now, event.clone()));
+        } else {
+            // Overwrite oldest event (circular buffer)
+            self.events[self.event_cursor] = (now, event.clone());
+            self.event_cursor = (self.event_cursor + 1) % self.max_events;
+        }
+
+        // Update event counts (only for critical events in high perf mode)
+        if !self.high_performance_mode || self.is_critical_event(&event) {
+            let event_key = self.event_key(&event);
+            *self.event_counts.entry(event_key).or_insert(0) += 1;
+        }
 
         // Log critical events
         if self.is_critical_event(&event) {
             eprintln!("SECURITY ALERT: {event:?}");
         }
+
+        // Periodic cleanup to prevent HashMap growth
+        if now.duration_since(self.last_cleanup) > Duration::from_secs(300) {
+            self.cleanup_old_data(now);
+        }
+    }
+
+    /// Clean up old data to prevent memory growth
+    fn cleanup_old_data(&mut self, now: Instant) {
+        self.last_cleanup = now;
+        
+        // In high performance mode, clear old event counts more aggressively
+        if self.high_performance_mode && self.event_counts.len() > 100 {
+            let keys_to_remove: Vec<String> = self.event_counts
+                .iter()
+                .filter(|(_, &count)| count < 5) // Remove entries with low counts
+                .map(|(key, _)| key.clone())
+                .collect();
+            
+            for key in keys_to_remove {
+                self.event_counts.remove(&key);
+            }
+        }
+
+        // Clean up old rate limit entries
+        let cutoff = now - Duration::from_secs(120); // Keep 2 minutes of rate limit data
+        self.rate_limits.retain(|_, (time, _)| *time > cutoff);
     }
 
     /// Check if rate limiting should be applied
@@ -103,29 +180,40 @@ impl SecurityMonitor {
         Ok(())
     }
 
-    /// Get security event statistics
+    /// Get security event statistics (optimized for high performance mode)
     pub fn get_statistics(&self) -> SecurityStatistics {
+        // In high performance mode, provide simplified statistics
+        if self.high_performance_mode {
+            return SecurityStatistics {
+                total_events: self.events.len(),
+                events_last_hour: self.events.len().min(100), // Approximate
+                events_last_day: self.events.len(),
+                critical_events: 0, // Skip expensive calculation
+                event_types: HashMap::new(), // Skip expensive clone
+            };
+        }
+
+        // Full statistics computation for normal mode
         let now = Instant::now();
         let last_hour = now - Duration::from_secs(3600);
         let last_day = now - Duration::from_secs(86400);
 
-        let events_last_hour = self
-            .events
-            .iter()
-            .filter(|(time, _)| *time > last_hour)
-            .count();
+        let mut events_last_hour = 0;
+        let mut events_last_day = 0;
+        let mut critical_events = 0;
 
-        let events_last_day = self
-            .events
-            .iter()
-            .filter(|(time, _)| *time > last_day)
-            .count();
-
-        let critical_events = self
-            .events
-            .iter()
-            .filter(|(_, event)| self.is_critical_event(event))
-            .count();
+        // Single pass through events for efficiency
+        for (time, event) in &self.events {
+            if *time > last_day {
+                events_last_day += 1;
+                if *time > last_hour {
+                    events_last_hour += 1;
+                }
+            }
+            if self.is_critical_event(event) {
+                critical_events += 1;
+            }
+        }
 
         SecurityStatistics {
             total_events: self.events.len(),
@@ -136,34 +224,38 @@ impl SecurityMonitor {
         }
     }
 
-    /// Check for security anomalies
+    /// Check for security anomalies (optimized for high performance mode)
     pub fn check_anomalies(&self) -> Vec<SecurityAnomaly> {
+        // In high performance mode, skip expensive anomaly detection
+        if self.high_performance_mode {
+            return Vec::new();
+        }
+
         let mut anomalies = Vec::new();
         let now = Instant::now();
         let last_minute = now - Duration::from_secs(60);
 
-        // Check for burst of events
-        let recent_events = self
-            .events
-            .iter()
-            .filter(|(time, _)| *time > last_minute)
-            .count();
+        let mut recent_events = 0;
+        let mut invalid_input_sources = HashMap::new();
 
+        // Single pass through events for efficiency
+        for (time, event) in &self.events {
+            if *time > last_minute {
+                recent_events += 1;
+                
+                // Track invalid input sources
+                if let SecurityEvent::InvalidInput { source, .. } = event {
+                    *invalid_input_sources.entry(source.clone()).or_insert(0) += 1;
+                }
+            }
+        }
+
+        // Check for burst of events
         if recent_events > 10 {
             anomalies.push(SecurityAnomaly::EventBurst {
                 event_count: recent_events,
                 time_window: Duration::from_secs(60),
             });
-        }
-
-        // Check for repeated invalid inputs
-        let mut invalid_input_sources = HashMap::new();
-        for (time, event) in &self.events {
-            if *time > last_minute {
-                if let SecurityEvent::InvalidInput { source, .. } = event {
-                    *invalid_input_sources.entry(source.clone()).or_insert(0) += 1;
-                }
-            }
         }
 
         for (source, count) in invalid_input_sources {
@@ -241,6 +333,15 @@ pub fn init_security_monitor() {
         if !MONITOR_INITIALIZED {
             SECURITY_MONITOR = Some(SecurityMonitor::new());
             MONITOR_INITIALIZED = true;
+        }
+    }
+}
+
+/// Enable high performance mode for security monitoring
+pub fn enable_high_performance_security(enabled: bool) {
+    unsafe {
+        if let Some(ref mut monitor) = SECURITY_MONITOR {
+            monitor.set_high_performance_mode(enabled);
         }
     }
 }
