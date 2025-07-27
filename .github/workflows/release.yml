@@ -207,7 +207,12 @@ jobs:
     steps:
     - name: Get version
       id: get_version
-      run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
       
     - name: Checkout homebrew-tap repository
       uses: actions/checkout@v4
@@ -216,12 +221,76 @@ jobs:
         token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         path: homebrew-tap
         
+    - name: Download release assets
+      run: |
+        # Download macOS assets to get checksums
+        gh release download ${{ steps.get_version.outputs.version }} --pattern "*macos*" --dir homebrew-tap/
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Update Homebrew formula
       run: |
         cd homebrew-tap
-        # Update the formula with new version and checksums
-        # This would be a script to update the .rb formula file
-        echo "Homebrew formula update would happen here"
+        
+        # Get checksums for macOS binaries
+        arm64_sha=$(shasum -a 256 netwatch-macos-arm64.tar.gz | cut -d' ' -f1)
+        x86_64_sha=$(shasum -a 256 netwatch-macos-x86_64.tar.gz | cut -d' ' -f1)
+        version="${{ steps.get_version.outputs.version }}"
+        
+        # Clean version (remove 'v' prefix if present)
+        clean_version=${version#v}
+        
+        # Update the formula file
+        cat > Formula/netwatch.rb << EOF
+        class Netwatch < Formula
+          desc "Modern network traffic monitor for Unix systems, inspired by nload but written in Rust"
+          homepage "https://github.com/vietcgi/netwatch"
+          version "${clean_version}"
+          license "MIT"
+
+          if OS.mac?
+            if Hardware::CPU.arm?
+              url "https://github.com/vietcgi/netwatch/releases/download/${version}/netwatch-macos-arm64.tar.gz"
+              sha256 "${arm64_sha}"
+            else
+              url "https://github.com/vietcgi/netwatch/releases/download/${version}/netwatch-macos-x86_64.tar.gz"
+              sha256 "${x86_64_sha}"
+            end
+          end
+
+          def install
+            bin.install "netwatch"
+          end
+
+          test do
+            # Test version output
+            assert_match version.to_s, shell_output("#{bin}/netwatch --version")
+            
+            # Test help output
+            assert_match "USAGE:", shell_output("#{bin}/netwatch --help")
+            
+            # Test list interfaces (should not fail even without network interfaces in test environment)
+            system "#{bin}/netwatch", "--list"
+          end
+
+          def caveats
+            <<~EOS
+              netwatch is a network traffic monitor that requires access to network interfaces.
+              
+              Usage examples:
+                netwatch                    # Monitor default interface
+                netwatch eth0               # Monitor specific interface
+                netwatch --list             # List available interfaces
+                netwatch --high-perf        # Enable high performance mode
+                
+              For more options, run: netwatch --help
+            EOS
+          end
+        end
+        EOF
+        
+        # Clean up downloaded files
+        rm -f *.tar.gz
         
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
